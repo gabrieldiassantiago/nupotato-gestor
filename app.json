@@ -23,11 +23,20 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      }
+        "backgroundColor": "#FFFFFF",
+        "package": "com.nupotato.nupotato",
+        "versionCode": 1
+      },
+      
+      "package": "com.gabriel42111.projeto"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e810beff-1465-4ad1-9baf-2a63252e5420"
+      }
     }
   }
 }
