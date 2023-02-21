@@ -93,7 +93,6 @@ const App = () => {
     setCart(updatedCart);
     updateDeliveryFee()
     updateTotal();
-
   };
   const removeFromCart = (id) => {
     const updatedCart = cart.filter(item => item.id !== id);
@@ -142,7 +141,7 @@ const [searchTerm, setSearchTerm] = useState('');
 
 const [nomeCliente, setNomeCliente] = useState('');
 const [enderecoName, setEndereco] = useState('');
-const [deliveryFee, setDeliveryFee] = useState();
+const [deliveryFee, setDeliveryFee] = useState(0);
 
 const filteredProducts = products.filter(product =>
   product.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -150,13 +149,14 @@ const filteredProducts = products.filter(product =>
 
 const [printTimestamp, setPrintTimestamp] = useState('');
 
-  const handlePrintButtonPress = async  () => {
-    const now = new Date();
-    const formattedTime = now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-    setPrintTimestamp(`${formattedTime}`);  
-    printReceipt()
-    console.log(printTimestamp);
-  }
+const handlePrintButtonPress = async  () => {
+  const date = new Date();
+const hours = date.getHours();
+const minutes = date.getMinutes();
+const time = `${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+printReceipt()
+console.log(time);
+}
 
 
   const printReceipt = async () => {
@@ -169,7 +169,7 @@ const [printTimestamp, setPrintTimestamp] = useState('');
           <img style="text-align:center; margin: 0 auto; width: 60px; display: flex; " src="https://i.imgur.com/rUpt2j9.png">
             <h1 style=" font-size: 14px; margin-top: 44px;">Nome do cliente: ${nomeCliente}
             </h1>
-            <span>Horário do pedido: ${printTimestamp}</span>
+            <span>Horário do pedido: ${time}</span>
             <span>.................................................</span>
   
             <table>
