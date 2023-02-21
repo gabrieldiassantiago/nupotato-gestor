@@ -87,13 +87,13 @@ const App = () => {
   const updateQuantity = (id, quantity) => {
     const updatedCart = cart.map((item) =>
       item.id === id
-        ? { ...item, quantity: parseInt(quantity), total: parseInt(quantity) * item.price + selectedAddition + deliveryFee }
+        ? { ...item, quantity: parseInt(quantity), total: parseInt(quantity) * item.price + selectedAddition }
         : item
     );
     setCart(updatedCart);
     updateDeliveryFee()
-
     updateTotal();
+
   };
   const removeFromCart = (id) => {
     const updatedCart = cart.filter(item => item.id !== id);
@@ -118,7 +118,7 @@ const handleAdditionChange = (value) => {
 
 const updateTotal = () => {
   const sum = cart.reduce((acc, item) => acc + item.total, 0);
-  const total = sum + parseFloat(deliveryFee);
+  const total = isNaN(deliveryFee) ? sum : sum + parseFloat(deliveryFee);
   setTotal(total)  
   
 };
@@ -128,7 +128,7 @@ const updateTotal = () => {
 
   useEffect(() => {
     updateTotal();
-  }, [cart, selectedAddition]);
+  }, [cart, total, deliveryFee]);
   
   
   const [showCart, setShowCart] = useState(false);
@@ -162,6 +162,8 @@ const [printTimestamp, setPrintTimestamp] = useState('');
   const printReceipt = async () => {
     if (paymentMethod === 'Dinheiro') {
       try {
+        updateTotal()
+        updateDeliveryFee()
         const result = await Print.printAsync({
           html: `
           <img style="text-align:center; margin: 0 auto; width: 60px; display: flex; " src="https://i.imgur.com/rUpt2j9.png">
@@ -318,6 +320,7 @@ const handleClear = () => {
   setCart([]);
   updateTotal();
   setEndereco('')
+  //paymentMethod()
 };
 
  handleAddressSelect = (data, details) => {
