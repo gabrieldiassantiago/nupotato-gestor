@@ -56,6 +56,7 @@ const App = () => {
   const [clientName, setClientName] = useState('');
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
+  const addressInputRef = useRef(null);
 
   const addToCart = (product) => {
     const item = cart.find((i) => i.id === product.id);
@@ -103,7 +104,10 @@ const App = () => {
 const updateDeliveryFee = (fee) => {
   setDeliveryFee(fee);
   updateTotal();
+
 };
+
+
 
 
 
@@ -121,7 +125,6 @@ const updateTotal = () => {
   setTotal(total)  
   
 };
-  
   
 
 
@@ -149,14 +152,16 @@ const filteredProducts = products.filter(product =>
 
 const [printTimestamp, setPrintTimestamp] = useState('');
 
-const handlePrintButtonPress = async  () => {
-  const date = new Date();
-const hours = date.getHours();
-const minutes = date.getMinutes();
-const time = `${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}`;
-printReceipt()
-console.log(time);
-}
+  const handlePrintButtonPress = async  () => {
+    const date = new Date();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const time = `${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+
+    setPrintTimestamp(`${time}`);  
+    printReceipt()
+    console.log(printTimestamp);
+  }
 
 
   const printReceipt = async () => {
@@ -169,7 +174,7 @@ console.log(time);
           <img style="text-align:center; margin: 0 auto; width: 60px; display: flex; " src="https://i.imgur.com/rUpt2j9.png">
             <h1 style=" font-size: 14px; margin-top: 44px;">Nome do cliente: ${nomeCliente}
             </h1>
-            <span>Horário do pedido: ${time}</span>
+            <span>Horário do pedido: ${printTimestamp}</span>
             <span>.................................................</span>
   
             <table>
@@ -231,7 +236,7 @@ console.log(time);
         <img style="text-align:center; margin: 0 auto; width: 60px; display: flex; " src="https://i.imgur.com/rUpt2j9.png">
           <h1 style=" font-size: 14px; margin-top: 44px;">Nome do cliente: ${nomeCliente}
           </h1>
-          <span>Data:${printTimestamp}</span>
+          <span>Horário do pedido: ${printTimestamp}</span>
           <span>.................................................</span>
 
           <table>
@@ -314,6 +319,9 @@ const GOOGLE_MAPS_API_KEY = 'AIzaSyCdm86e-uX38CsA4I-3_CY-WbHpqLuWvJ4';
 const handlePaymentMethodChange = (value) => {
   setPaymentMethod(value);
 };
+const handleSelectAddress = (data, details) => {
+  setAddress(details.formatted_address);
+};
 const handleClear = () => {
   setNomeCliente('');
   setDeliveryFee(0);
@@ -322,11 +330,20 @@ const handleClear = () => {
   setEndereco('')
   //paymentMethod()
 };
+const handlePress = async (data, details = null) => {
+  try {
+    const { formatted_address } = await GooglePlacesAutocomplete.fetchDetails(data.place_id);
+    setAddress(formatted_address);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
  handleAddressSelect = (data, details) => {
     const address = details.formatted_address;
     this.setState({ address });
   }
+  const [address, setAddress] = useState('');
 
 
 return (
@@ -343,7 +360,6 @@ return (
     source={require('./assets/logo.png')}
     />
               <Text style={styles.headerfiscal}>Nota fiscal e carrinho</Text>
-             
               <TextInput
         style={styles.inputpesquisa}
         placeholder="Nome do cliente"
@@ -353,15 +369,13 @@ return (
      <ScrollView style={{width: '100%'}}>
      <GooglePlacesAutocomplete 
     placeholder='Buscar endereço'
-    onPress={(data, details = null) => {
-      // 'details' is provided when fetchDetails = true
-      console.log(data, details);
-      
-    }}
+    onPress={handlePress}
+
     query={{
       key: GOOGLE_MAPS_API_KEY,
       language: 'pt-br',
     }}
+    
     styles={{
       textInputContainer: {
         width: '100%',
@@ -386,13 +400,17 @@ return (
       }
     }}
       />
+   <TextInput
+        value={address}
+        onChangeText={setAddress}
+      />
 
      </ScrollView>
      
       <TextInput 
       style={styles.inputpesquisa}
       value={deliveryFee}
-      onChangeText={setDeliveryFee}
+      onChangeText={updateDeliveryFee}
       keyboardType="numeric"
       placeholder="Valor da entrega"
       />
