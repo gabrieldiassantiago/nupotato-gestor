@@ -9,12 +9,14 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  Modal
+  Modal,
+  FlatList
 } from 'react-native';
 import * as Print from 'expo-print';
 import * as Share from 'expo-sharing';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Picker } from '@react-native-picker/picker';
+
 
 
 const App = () => {
@@ -52,13 +54,12 @@ const App = () => {
     
   ])
   const [clientName, setClientName] = useState('');
-
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
-  
+
   const addToCart = (product) => {
     const item = cart.find((i) => i.id === product.id);
-  
+
     if (!item) {
       setCart([...cart, { ...product, quantity: 1, total: product.price }]);
     } else {
@@ -68,34 +69,36 @@ const App = () => {
           : i
       );
       setCart(updatedCart);
+      
     }
-  
     updateTotal();
-  };
+
+    };
    
   
   console.log(total)
+
+
+  if (change <= total) {
+    Alert.alert('ERRO')
+  }
   
 
   const updateQuantity = (id, quantity) => {
     const updatedCart = cart.map((item) =>
       item.id === id
-        ?{ ...item, quantity: parseInt(quantity), total: item.price * parseInt(quantity)  }
+        ? { ...item, quantity: parseInt(quantity), total: parseInt(quantity) * item.price + selectedAddition + deliveryFee }
         : item
     );
     setCart(updatedCart);
-    updateTotal();
-    setTotal(newTotal + deliveryFee);
+    updateDeliveryFee()
 
+    updateTotal();
   };
   const removeFromCart = (id) => {
-    const updatedCart = cart.filter((item) => item.id !== id);
+    const updatedCart = cart.filter(item => item.id !== id);
     setCart(updatedCart);
-    let newTotal = 0;
-    updatedCart.forEach((item) => {
-      newTotal += item.total;
-    });
-    setTotal(newTotal + deliveryFee);
+    updateTotal();
   };
 
 const updateDeliveryFee = (fee) => {
@@ -103,17 +106,29 @@ const updateDeliveryFee = (fee) => {
   updateTotal();
 };
 
-  const updateTotal = () => {
-    let newTotal = 0;
-    cart.forEach((item) => {
-      newTotal += item.total;
-    });
-    setTotal(newTotal + deliveryFee);
-  };
+
+
+
+const [selectedAddition, setSelectedAddition] = useState(0);
+
+const handleAdditionChange = (value) => {
+  setSelectedAddition(value);
+};
+
+
+const updateTotal = () => {
+  const sum = cart.reduce((acc, item) => acc + item.total, 0);
+  const total = sum + deliveryFee;
+  setTotal(total)  
   
+};
+  
+  
+
+
   useEffect(() => {
     updateTotal();
-  }, [cart]);
+  }, [cart, selectedAddition]);
   
   
   const [showCart, setShowCart] = useState(false);
@@ -122,73 +137,120 @@ const handleCartPress = () => {
   setShowCart(!showCart);
 };
   
-const getCurrentDateTime = () => {
-  const date = new Date()
-
-  const day = date.getDate();
-  const month = date.getMonth() + 1;
-  const year = date.getFullYear();
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
-};
 
 const [searchTerm, setSearchTerm] = useState('');
 
 const [nomeCliente, setNomeCliente] = useState('');
 const [enderecoName, setEndereco] = useState('');
-const [deliveryFee, setDeliveryFee] = useState(0);
+const [deliveryFee, setDeliveryFee] = useState(Number);
 
 const filteredProducts = products.filter(product =>
   product.name.toLowerCase().includes(searchTerm.toLowerCase())
 );
 
-const [currentDateTime, setCurrentDateTime] = useState(getCurrentDateTime());
+const [printTimestamp, setPrintTimestamp] = useState('');
 
-const CurrentDateTime = () => {
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentDateTime(getCurrentDateTime());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return <Text>{currentDateTime}</Text>;
-};
+  const handlePrintButtonPress = async  () => {
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+    setPrintTimestamp(`${formattedTime}`);  
+    printReceipt()
+    console.log(printTimestamp);
+  }
 
 
   const printReceipt = async () => {
-
+    if (paymentMethod === 'Dinheiro') {
       try {
+        const result = await Print.printAsync({
+          html: `
+          <img style="text-align:center; margin: 0 auto; width: 60px; display: flex; " src="https://i.imgur.com/rUpt2j9.png">
+            <h1 style=" font-size: 14px; margin-top: 44px;">Nome do cliente: ${nomeCliente}
+            </h1>
+            <span>Horário do pedido: ${printTimestamp}</span>
+            <span>.................................................</span>
+  
+            <table>
+              <thead style="display: flex; gap: 20px;">
+                      
+              </thead>
+              <tbody style="gap: 40px">
+              <h1 style=" font-size: 16px">Itens do pedido</h1>
+                ${cart
+                  .map((item) => {
+                    return `
+                      <tr>
+                      <td style="font-size: 13px;">${item.quantity}x  ${item.name} R$${item.price * item.quantity  }
+                      
+                    </td>                    
+                      </tr>
+                      
+                    `;
+                  }
+                  )
+                  .join('')
+                }
+                
+              </tbody>
+          </table>
+          </thead>
+          
+         <span>.................................................</span>
+          <h1 style=" font-size: 16px">Informações do endereço</h1>
+        <span style="text-align: center; font-size: 12px;">Endereço: ${enderecoName}</span> <br> <br>
+        <span style="text-align: center; font-size: 12px;">Forma de pagamento: Dinheiro: troco para R$${change},00.
+        <span style="font-size: 12px;">Você deverá dar R$${change - total},00
+        de troco</span>
+        </span> <br> <br>
+        <span style="text-align: center; font-size: 12px;">Taxa de entrega: R$${deliveryFee},00 </span> <br> <br>
+  
+        <span>.................................................</span>
+        <h1 style="text-align:center; font-size: 16px">Informações de pagamento</h1>
+        <span style="text-align: center; font-size: 12px;">Valor total do pedido: R$ ${total},00</span>
+        <span>.................................................</span>
+  
+  
+        `,
         
+        base64: false
+      }
+      
+      );
+      
+  
+  
+    } catch (error) {
+      console.error(error);
+    }
+    }else
+      try {
       const result = await Print.printAsync({
         html: `
         <img style="text-align:center; margin: 0 auto; width: 60px; display: flex; " src="https://i.imgur.com/rUpt2j9.png">
-          <h1 style="text-align:center; font-size: 12px; font-family: 'Montserrat'; ">Nome do cliente: ${nomeCliente}
+          <h1 style=" font-size: 14px; margin-top: 44px;">Nome do cliente: ${nomeCliente}
           </h1>
+          <span>Data:${printTimestamp}</span>
+          <span>.................................................</span>
+
           <table>
             <thead style="display: flex; gap: 20px;">
                     
             </thead>
-            <tbody style="text-align: center; gap: 40px">
-            <h1 style="text-align:center; font-size: 16px">Itens do pedido</h1>
-
+            <tbody style="gap: 40px">
+            <h1 style=" font-size: 16px">Itens do pedido</h1>
               ${cart
                 .map((item) => {
                   return `
                     <tr>
-                    <td style="font-size: 13px; margin: 0 auto; text-align: center">${item.quantity}x  ${item.name} R$${item.price * item.quantity /* 
-                  Pegar a quantidade do item e o nome e seu preço multiplicando pela quantidade para
-                  obter o valor total do item 
-                  */},00</td>                    
+                    <td style="font-size: 13px;">${item.quantity}x  ${item.name} R$${item.price * item.quantity  }
+                    
+                  </td>                    
                     </tr>
+                    
                   `;
                 }
                 )
                 .join('')
-              
-
               }
               
             </tbody>
@@ -196,15 +258,16 @@ const CurrentDateTime = () => {
         </thead>
         
        <span>.................................................</span>
-        <h1 style="text-align:center; font-size: 16px">Informações do endereço</h1>
+        <h1 style=" font-size: 16px">Informações do endereço</h1>
       <span style="text-align: center; font-size: 12px;">Endereço: ${enderecoName}</span> <br> <br>
-      <span style="text-align: center; font-size: 12px;">Forma de pagamento: ${paymentMethod}</span>
+      <span style="text-align: center; font-size: 12px;">Forma de pagamento: ${paymentMethod} </span> <br> <br>
+      <span style="text-align: center; font-size: 12px;">Taxa de entrega: R$${deliveryFee},00 </span> <br> <br>
+
       <span>.................................................</span>
       <h1 style="text-align:center; font-size: 16px">Informações de pagamento</h1>
-      <span style="text-align: center; font-size: 12px;">Valor total: R$ ${total},00</span>
+      <span style="text-align: center; font-size: 12px;">Valor total do pedido: R$ ${total},00</span>
       <span>.................................................</span>
 
-      
 
       `,
       
@@ -228,29 +291,9 @@ try {
   // Lógica de tratamento de erro, por exemplo, exibir uma mensagem para o usuário
 }
 
-const shareReceipt = () => {
-  Alert.prompt(
-    "Nome do cliente",
-    "Por favor, informe o nome do cliente",
-    [
-      {
-        text: "Cancelar",
-        onPress: () => console.log("Cancel Pressed"),
-        style: "cancel"
-      },
-      {
-        text: "OK",
-        onPress: clientName => {
-          console.log(`Client Name: ${clientName}`);
-          setClientName(clientName);
-        }
-      }
-    ],
-    {
-      placeholder: "Nome do cliente"
-    }
-  
-)}
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCdm86e-uX38CsA4I-3_CY-WbHpqLuWvJ4';
+
+
   const [selectedValue, setSelectedValue] = useState('null');
 
   const scrollViewRef = useRef(null);
@@ -262,12 +305,27 @@ const shareReceipt = () => {
   };
 
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [change, setChange] = useState('R$');
+  const [change, setChange] = useState(Number);
+
 
 
 const handlePaymentMethodChange = (value) => {
   setPaymentMethod(value);
 };
+const handleClear = () => {
+  setNomeCliente('');
+  setDeliveryFee(0);
+  setCart([]);
+  updateTotal();
+  setEndereco('')
+  //paymentMethod()
+};
+
+ handleAddressSelect = (data, details) => {
+    const address = details.formatted_address;
+    this.setState({ address });
+  }
+
 
 return (
   <View style={styles.container}>
@@ -279,20 +337,56 @@ return (
     {showCart && (
             <ScrollView  ref={scrollViewRef}      style={[styles.cartContainer, { height: showCart ? '100%' : 0, width: showCart ? '100%' : 0 }]}>
           <View style={styles.dadoscliente}>
-        
+          <Image style={styles.logocard}
+    source={require('./assets/logo.png')}
+    />
               <Text style={styles.headerfiscal}>Nota fiscal e carrinho</Text>
+             
               <TextInput
         style={styles.inputpesquisa}
         placeholder="Nome do cliente"
         onChangeText={text => setNomeCliente(text)}
         value={nomeCliente}
       />
-      <TextInput 
-      style={styles.inputpesquisa}
-      placeholder="Endereço do cliente"
-      onChangeText={text => setEndereco(text)}
-      value={enderecoName}
+     <ScrollView style={{width: '100%'}}>
+     <GooglePlacesAutocomplete 
+    placeholder='Buscar endereço'
+    onPress={(data, details = null) => {
+      // 'details' is provided when fetchDetails = true
+      console.log(data, details);
+      
+    }}
+    query={{
+      key: GOOGLE_MAPS_API_KEY,
+      language: 'pt-br',
+    }}
+    styles={{
+      textInputContainer: {
+        width: '100%',
+        borderRadius: 40,
+        
+      },
+      description: {
+        fontWeight: 'bold',
+      },
+      predefinedPlacesDescription: {
+        color: '#1faadb',
+      },
+      textInput: {
+        backgroundColor: '#F2F2F2',
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginVertical: 10,
+        height: 50,
+        
+      }
+    }}
       />
+
+     </ScrollView>
+     
       <TextInput 
       style={styles.inputpesquisa}
       value={deliveryFee}
@@ -304,7 +398,18 @@ return (
 <Picker
   selectedValue={paymentMethod}
   onValueChange={(itemValue) => setPaymentMethod(itemValue)}
+  style={{
+    backgroundColor: '#F2F2F2',
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginVertical: 10,
+    height: 50,
+  }}
 >
+
+  <Picker.Item label='Selecionar sua forma de pagamento' value={null} />
   <Picker.Item label="Dinheiro" value="Dinheiro" />
   <Picker.Item label="Cartão de crédito" value="Cartão de crédito" />
   <Picker.Item label="Pix" value="Pago via pix" />
@@ -316,6 +421,7 @@ return (
     style={styles.inputpesquisa}
     placeholder="Quantidade de troco"
   />
+ 
 )
 
 }
@@ -329,14 +435,21 @@ return (
         <Text style={styles.clientenametext}>Nome do cliente: {nomeCliente}</Text>
         <Text style={styles.clientenametext}>-------------------------------</Text>
         <Text style={styles.clientenametext}>Itens do pedido</Text>
+        <Text style={styles.clientenametext}>-------------------------------</Text>
         
         {cart.map((item) => (
           <View style={styles.cartItem} key={item.id}>
             <View style={styles.cartItemDetails}>
               <Text style={styles.cartItemName}>{item.name}</Text>
               <Text style={styles.cartItemPrice}>R$ {item.price * item.quantity}, 00</Text>
-              <Text>Adicionar acréscimo</Text>
-
+              <Picker
+    selectedValue={selectedAddition}
+    onValueChange={handleAdditionChange}
+  >
+    <Picker.Item label="Sem acréscimo" value={0} />
+    <Picker.Item label="Acréscimo de R$ 5,00" value={5} />
+    <Picker.Item label="Acréscimo de R$ 10,00" value={10}  />
+  </Picker>
             </View>
             <View style={styles.cartItemQuantity}>
               <TextInput
@@ -352,14 +465,29 @@ return (
             </TouchableOpacity>
           </View>
         ))}
-        {cart.length > 0 && (
-          <ScrollView>
+                <Text style={styles.clientenametext}>Informações de endereço</Text>
+                <Text style={styles.clientenametext}>-------------------------------</Text>
+                <Text style={styles.clientenametext}>{enderecoName}</Text>
+                <Text style={styles.clientenametext}>{paymentMethod}</Text>
+                <Text style={styles.clientenametext}>Valor total: R$ {total},00</Text>
 
-          <View style={styles.actions}>
-            <TouchableOpacity style={styles.printButton} onPress={printReceipt}>
+        {cart.length > 0 && (
+          <ScrollView  style={[styles.cartContainer, { height: showCart ? '100%' : 0, width: showCart ? '100%' : 0 }]}>
+            <TouchableOpacity style={styles.printButton} onPress={handlePrintButtonPress }>
               <Text style={styles.printButtonText}>Imprimir</Text>
+              
             </TouchableOpacity>
-          </View>
+            <TouchableOpacity style={styles.printButton} onPress={handleClear}>
+              <Text style={styles.printButtonText}>Limpar carrinho</Text>
+              
+            </TouchableOpacity>
+            <View>
+                <Text>   </Text>
+                <Text>   </Text><Text>  
+                   </Text><Text>  
+                     </Text><Text>  
+                       </Text>
+              </View>
           </ScrollView>
 
         )}
@@ -398,6 +526,7 @@ return (
         </View>
       ))}
    </ScrollView>
+
    </ScrollView>
 
   </View>
@@ -460,7 +589,7 @@ const styles = StyleSheet.create({
     display: 'flex',
     alignItems: 'flex-end',
     marginTop: 50,
-    marginLeft: 340,    
+    marginLeft: 420,    
   },
   description: {
     fontSize: 17,
@@ -613,7 +742,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 20,
     flex: 1,
-    marginRight: 10
+    marginRight: 20,
+    marginTop: 20,
   },
   printButtonText: {
     color: '#fff',
