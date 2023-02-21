@@ -118,7 +118,7 @@ const handleAdditionChange = (value) => {
 
 const updateTotal = () => {
   const sum = cart.reduce((acc, item) => acc + item.total, 0);
-  const total = sum + deliveryFee;
+  const total = sum + parseFloat(deliveryFee);
   setTotal(total)  
   
 };
@@ -142,7 +142,7 @@ const [searchTerm, setSearchTerm] = useState('');
 
 const [nomeCliente, setNomeCliente] = useState('');
 const [enderecoName, setEndereco] = useState('');
-const [deliveryFee, setDeliveryFee] = useState(Number);
+const [deliveryFee, setDeliveryFee] = useState();
 
 const filteredProducts = products.filter(product =>
   product.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -318,7 +318,6 @@ const handleClear = () => {
   setCart([]);
   updateTotal();
   setEndereco('')
-  //paymentMethod()
 };
 
  handleAddressSelect = (data, details) => {
