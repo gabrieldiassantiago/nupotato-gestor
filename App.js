@@ -51,12 +51,11 @@ const App = () => {
     {id: 28,  name: 'Frango ao molho branco e bacon', price: 25},
     {id: 29,  name: 'Batata Bolonhesa', price: 25},
     {id: 30,  name: 'Batata Lasanha', price: 25},
-    
   ])
   const [clientName, setClientName] = useState('');
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
-  const addressInputRef = useRef(null);
+
 
   const addToCart = (product) => {
     const item = cart.find((i) => i.id === product.id);
@@ -120,13 +119,18 @@ const handleAdditionChange = (value) => {
 
 
 const updateTotal = () => {
+ if (total === isNaN) {
+  const sum = cart.reduce((acc, item) => acc + item.total, 0);
+  const total = isNaN(deliveryFee) ? sum : sum;
+  updateTotal(total)
+ }else {
   const sum = cart.reduce((acc, item) => acc + item.total, 0);
   const total = isNaN(deliveryFee) ? sum : sum + parseFloat(deliveryFee);
   setTotal(total)  
+ }
   
 };
   
-
 
   useEffect(() => {
     updateTotal();
@@ -330,20 +334,13 @@ const handleClear = () => {
   setEndereco('')
   //paymentMethod()
 };
-const handlePress = async (data, details = null) => {
-  try {
-    const { formatted_address } = await GooglePlacesAutocomplete.fetchDetails(data.place_id);
-    setAddress(formatted_address);
-  } catch (error) {
-    console.log(error);
-  }
+const addressInputRef = useRef(null);
+
+const handlePlaceSelect = (data, details = null) => {
+  const address = details?.formatted_address || '';
+  addressInputRef.current?.setNativeProps({ text: address });
 };
 
- handleAddressSelect = (data, details) => {
-    const address = details.formatted_address;
-    this.setState({ address });
-  }
-  const [address, setAddress] = useState('');
 
 
 return (
@@ -367,10 +364,9 @@ return (
         value={nomeCliente}
       />
      <ScrollView style={{width: '100%'}}>
-     <GooglePlacesAutocomplete 
-    placeholder='Buscar endereço'
-    onPress={handlePress}
-
+     <GooglePlacesAutocomplete
+     placeholder='Buscar endereço'
+    onPress={handlePlaceSelect}
     query={{
       key: GOOGLE_MAPS_API_KEY,
       language: 'pt-br',
@@ -398,13 +394,9 @@ return (
         height: 50,
         
       }
-    }}
-      />
-   <TextInput
-        value={address}
-        onChangeText={setAddress}
-      />
-
+    }
+    }>
+     </GooglePlacesAutocomplete>
      </ScrollView>
      
       <TextInput 
@@ -438,6 +430,7 @@ return (
   <TextInput
     onChangeText={(text) => setChange(text)}
     value={change}
+    keyboardType="numeric"
     style={styles.inputpesquisa}
     placeholder="Quantidade de troco"
   />
@@ -462,14 +455,7 @@ return (
             <View style={styles.cartItemDetails}>
               <Text style={styles.cartItemName}>{item.name}</Text>
               <Text style={styles.cartItemPrice}>R$ {item.price * item.quantity}, 00</Text>
-              <Picker
-    selectedValue={selectedAddition}
-    onValueChange={handleAdditionChange}
-  >
-    <Picker.Item label="Sem acréscimo" value={0} />
-    <Picker.Item label="Acréscimo de R$ 5,00" value={5} />
-    <Picker.Item label="Acréscimo de R$ 10,00" value={10}  />
-  </Picker>
+             
             </View>
             <View style={styles.cartItemQuantity}>
               <TextInput
