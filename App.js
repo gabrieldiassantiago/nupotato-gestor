@@ -51,11 +51,25 @@ const App = () => {
     {id: 28,  name: 'Frango ao molho branco e bacon', price: 25},
     {id: 29,  name: 'Batata Bolonhesa', price: 25},
     {id: 30,  name: 'Batata Lasanha', price: 25},
+    
   ])
+
+  const additions = {
+    mussarela: 4,
+    bacon: 4,
+    queijo: 4,
+  };
+  const addAddition = (index, addition) => {
+    const updatedCart = [...cart];
+    updatedCart[index].additions.push(additions);
+    setCart(updatedCart);
+  };
   const [clientName, setClientName] = useState('');
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
-
+  const addItemToCart = (item) => {
+    setCart([...cart, { ...item, quantity: 1, additions: [] }]);
+  };
 
   const addToCart = (product) => {
     const item = cart.find((i) => i.id === product.id);
@@ -303,6 +317,7 @@ try {
 }
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCdm86e-uX38CsA4I-3_CY-WbHpqLuWvJ4';
+const [modalVisible, setModalVisible] = useState(false);
 
 
   const [selectedValue, setSelectedValue] = useState('null');
@@ -317,7 +332,6 @@ const GOOGLE_MAPS_API_KEY = 'AIzaSyCdm86e-uX38CsA4I-3_CY-WbHpqLuWvJ4';
 
   const [paymentMethod, setPaymentMethod] = useState('');
   const [change, setChange] = useState(Number);
-
 
 
 const handlePaymentMethodChange = (value) => {
@@ -455,7 +469,25 @@ return (
             <View style={styles.cartItemDetails}>
               <Text style={styles.cartItemName}>{item.name}</Text>
               <Text style={styles.cartItemPrice}>R$ {item.price * item.quantity}, 00</Text>
-             
+              <TouchableOpacity onPress={() => setModalVisible(true)}>
+      <Text style={styles.addAdditionButton}>Adicionar acréscimo</Text>
+    </TouchableOpacity>
+    <Modal visible={modalVisible}>
+  <View style={styles.modalContent}>
+    <TouchableOpacity onPress={() => addAddition(itemIndex, 'mussarela')}>
+      <Text style={styles.modalOption}>Mussarela</Text>
+    </TouchableOpacity>
+    <TouchableOpacity onPress={() => addAddition(itemIndex, 'bacon')}>
+      <Text style={styles.modalOption}>Bacon</Text>
+    </TouchableOpacity>
+    <TouchableOpacity onPress={() => addAddition(itemIndex, 'queijo')}>
+      <Text style={styles.modalOption}>Queijo</Text>
+    </TouchableOpacity>
+    <TouchableOpacity onPress={() => setModalVisible(false)}>
+      <Text style={styles.modalButton}>Confirmar</Text>
+    </TouchableOpacity>
+  </View>
+</Modal>
             </View>
             <View style={styles.cartItemQuantity}>
               <TextInput
